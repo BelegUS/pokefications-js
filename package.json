@@ -1,0 +1,12 @@
+{
+  "name": "pokefications-bot",
+  "version": "0.0.1",
+  "description": "Simple Discord bot to send notifications about 'Mons from specific districts",
+  "main": "bot.js",
+  "author": "BelegUS",
+  "dependencies": {
+    "discord.js": "^11.2.1",
+    "point-in-polygon": "^1.0.1",
+    "winston": "^2.4.0"
+  }
+}
