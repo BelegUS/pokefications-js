@@ -1,6 +1,16 @@
 require('dotenv').load();
 
-var logger = require('winston');
+var winston = require('winston');
+var logger = new (winston.Logger)({
+    transports: [
+        new winston.transports.File({ filename: './logs/combined.log', timestamp: true, maxsize: 1000000 })
+    ],
+    exceptionHandlers: [
+        new winston.transports.File({ filename: './logs/exceptions.log', timestamp: true, maxsize: 1000000 })
+    ],
+    exitOnError: true
+});
+
 var inside = require('point-in-polygon');
 var districtProvider = require('./districts.js');
 var districts = districtProvider.getDistricts();
@@ -19,7 +29,9 @@ checkerClient.on('message', function (message) {
             var coordinates = extractCoordinatesFromGoogleMapsUrl(embed.url);
             districts.forEach(function(district) {
                 if(inside(coordinates, district.polygon)) {
-                    notifierClient.channels.get(district.channelId).send(createPokefication(message, embed));
+                    notifierClient.channels.get(district.channelId).send(createPokefication(message, embed), {
+                        files: [message.author.avatarURL + ".png", embed.image.url + ".png"]
+                    });
                 }
             });
         })
@@ -38,7 +50,7 @@ function extractCoordinatesFromGoogleMapsUrl(url)
 function createPokefication(message, embed)
 {
     var pokefication = "";
-    pokefication += message.author.username + "\n";
+    pokefication += "**" + message.author.username + "** \n";
     pokefication += embed.title + "\n";
     pokefication += embed.description + "\n";
     pokefication += embed.url + "\n \n";
