@@ -11,9 +11,11 @@ var logger = new (winston.Logger)({
     exitOnError: true
 });
 
-var inside = require('point-in-polygon');
-var districtProvider = require('./districts.js');
-var districts = districtProvider.getDistricts();
+const inside = require('point-in-polygon');
+const districtProvider = require('./districts.js');
+const districts = districtProvider.getDistricts();
+const pokeDataExtracter = require('./extract-pokedata');
+const pokeficationCreator = require('./create-pokefication');
 const Discord = require('discord.js');
 
 const checkerClient = new Discord.Client();
@@ -23,13 +25,29 @@ checkerClient.on('ready', function () {
     console.log('I am ready!');
 });
 
+notifierClient.on('ready', function() {
+    const ONE_HOUR = 60 * 60 * 1000;
+    var interval = setInterval(function() {
+        console.log('Cleaning old messages');
+        districts.forEach(function(district) {
+            notifierClient.channels.get(district.channelId).fetchMessages().then(function(messages) {
+               messages.forEach(function(message) {
+                   if(((new Date) - message.createdAt) > ONE_HOUR) {
+                       message.delete();
+                   }
+               });
+            });
+        });
+    }, ONE_HOUR / 2);
+});
+
 checkerClient.on('message', function (message) {
     if (message.channel.name.indexOf(process.env.canalNamePrefix) > -1 && message.embeds.length > 0) {
         message.embeds.forEach(function(embed) {
-            var coordinates = extractCoordinatesFromGoogleMapsUrl(embed.url);
+            const coordinates = pokeDataExtracter.extractCoordinatesFromGoogleMapsUrl(embed.url);
             districts.forEach(function(district) {
                 if(inside(coordinates, district.polygon)) {
-                    notifierClient.channels.get(district.channelId).send(createPokefication(message, embed), {
+                    notifierClient.channels.get(district.channelId).send(pokeficationCreator.createPokefication(message, embed), {
                         files: [message.author.avatarURL + ".png", embed.image.url + ".png"]
                     });
                 }
@@ -40,19 +58,3 @@ checkerClient.on('message', function (message) {
 
 checkerClient.login(process.env.checkerToken);
 notifierClient.login(process.env.notifierToken);
-
-function extractCoordinatesFromGoogleMapsUrl(url)
-{
-    var coordsString = url.slice(url.indexOf("=") + 1);
-    return coordsString.split(",");
-}
-
-function createPokefication(message, embed)
-{
-    var pokefication = "";
-    pokefication += "**" + message.author.username + "** \n";
-    pokefication += embed.title + "\n";
-    pokefication += embed.description + "\n";
-    pokefication += embed.url + "\n \n";
-    return pokefication;
-}
