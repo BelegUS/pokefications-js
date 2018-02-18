@@ -26,7 +26,7 @@ checkerClient.on('ready', function () {
 });
 
 checkerClient.on('message', function (message) {
-    if (message.channel.name.indexOf(process.env.canalNamePrefix) > -1 && message.embeds.length > 0) {
+    if (message.channel.parentID === process.env.categoryId && message.embeds.length > 0) {
         message.embeds.forEach(function (embed) {
             const coordinates = pokeDataExtracter.extractCoordinatesFromGoogleMapsUrl(embed.url);
             districts.forEach(function (district) {
